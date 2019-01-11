@@ -334,10 +334,11 @@ switch mode
    return % pars = qdyn('set',...)  --> do not compute, exit here
   
  case 'read',
-   pars = read_qdyn_in(NAME);
-   pars.NAME = NAME;
-   [pars.N,pars.FINITE] = read_qdyn_h(NAME);
-   [ot,ox]= read_qdyn_out(NAME);
+   %pars = read_qdyn_in(NAME);
+   %pars.NAME = NAME;
+   %[pars.N,pars.FINITE] = read_qdyn_h(NAME);
+   %[ot,ox] = read_qdyn_out(NAME);
+   [ot,ox] = read_qdyn_out_mpi(NAME,NX,NW,NXOUT,NWOUT)
 
  case {'run', 'write'},
 
@@ -660,7 +661,7 @@ end
   N_lines = str2double(strtok(nol))-1; % Number of time stesps
   fid=fopen(namex);
   NSX=fscanf(fid,'# nx=%u');
-  NST = N_lines/(NSX+1);
+  NST = floor(N_lines/(NSX+1));
   nx=NSX/NW;
   nw=floor(NW/NWOUT);
   n=nx*nw; 
@@ -691,18 +692,21 @@ end
     head = textscan(fid, formatString_h, 1);% reading headers
     data = textscan(fid, formatString_d, NSX);
     %allData = [allData; [data{:}]];
-    cosa=reshape([data{:}],NSX,1,11);
-    ox.x = cosa(ind_w,1,1);
-    ox.y = cosa(ind_w,1,2);
-    ox.z = cosa(ind_w,1,3);
-    ox.t(1,j) = cosa(1,1,4);
-    ox.v(:,j) = cosa(ind_w,1,5);
-    ox.th(:,j) = cosa(ind_w,1,6);
-    ox.vd(:,j) = cosa(ind_w,1,7);
-    ox.dtau(:,j) = cosa(ind_w,1,8);
-    ox.dtaud(:,j) = cosa(ind_w,1,9);
-    ox.d(:,j) = cosa(ind_w,1,10);
-    ox.sigma(:,j) = cosa(ind_w,1,11);
+    size_data = length([data{:}]);
+    if size_data == NSX*11
+      cosa=reshape([data{:}],NSX,1,11);
+      ox.x = cosa(ind_w,1,1);
+      ox.y = cosa(ind_w,1,2);
+      ox.z = cosa(ind_w,1,3);
+      ox.t(1,j) = cosa(1,1,4);
+      ox.v(:,j) = cosa(ind_w,1,5);
+      ox.th(:,j) = cosa(ind_w,1,6);
+      ox.vd(:,j) = cosa(ind_w,1,7);
+      ox.dtau(:,j) = cosa(ind_w,1,8);
+      ox.dtaud(:,j) = cosa(ind_w,1,9);
+      ox.d(:,j) = cosa(ind_w,1,10)
+      ox.sigma(:,j) = cosa(ind_w,1,11);
+    end
   end
   fclose(fid);
   
@@ -752,7 +756,7 @@ if uimatlab
   N_lines = str2double(strtok(nol))-1; % Number of time stesps
   fid=fopen(namex);
   NSX=fscanf(fid,'# nx=%u');
-  NST = N_lines/(NSX+1);
+  NST = floor(N_lines/(NSX+1));
   
   nx=NSX/NW;
   nw=floor(NW/NWOUT);
@@ -781,8 +785,11 @@ if uimatlab
 
   for j=1:NST
     head = textscan(fid, formatString_h, 1);% reading headers
+    %display(head{:});
     data = textscan(fid, formatString_d, NSX);
     %allData = [allData; [data{:}]];
+    %display(length([data{:}]));
+    %display(NSX);    
     cosa=reshape([data{:}],NSX,1,9);
     ox.x = cosa(ind_w,1,1);
     ox.t(1,j) = cosa(1,1,2);

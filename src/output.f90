@@ -328,7 +328,7 @@ if (MPI_parallel) then
         write(pb%ox%unit,'(2a,2i8,e14.6)') '# x y z t v theta',' V_dot/V dtau tau_dot slip sigma ',&
                                           pb%it,pb%ot%ivmaxglob,pb%time
         do ixout=1,pb%mesh%nnglob,pb%ox%nxout
-          write(pb%ox%unit,'(3e15.7,e24.16,7e15.7)') pb%mesh%xglob(ixout),pb%mesh%yglob(ixout),&
+          write(pb%ox%unit,'(3e15.7,e25.16E3,7e16.7E3)') pb%mesh%xglob(ixout),pb%mesh%yglob(ixout),&
           pb%mesh%zglob(ixout),pb%time,pb%v_glob(ixout),pb%theta_glob(ixout),&
           pb%dv_dt_glob(ixout)/pb%v_glob(ixout),&
           pb%tau_glob(ixout),pb%dtau_dt_glob(ixout),pb%slip_glob(ixout), pb%sigma_glob(ixout)
