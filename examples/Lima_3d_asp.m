@@ -2,11 +2,16 @@
 % Adapted from "test_3dfft.m": Prof. Ampuero, Dr. Galvez
 % Modified on: 06/22/17
 % By: Luis Ceferino
+% Notes: same as 7.23, but changing the location of the northernmost
+% asperity, so that the section 8 ruptures
+% 7.25.1: p.A times 10, and p.DC times 10. It helps increasing the
+% potential stress drop and keeping Lb and Linf controlled
+
 clear;
 clc;
 
-addpath ~/qdyn_developer/src
-
+%addpath ~/Documents/QDYN/qdyn_developer/src
+addpath('/scratch/users/ceferino/qdyn_collaboration/src');
 %addpath ~/qdyn-read-only/src 
 %------------------------------
 rand(1,floor(sum(100*clock)));
@@ -28,12 +33,13 @@ p.MESHDIM=2;   % 3D
 p.THETA_LAW=1; % Edited on 06/21 Ageing Law
 p.SIGMA=100.0e6; % PG: The normal stress. Here 100 Mpa, and later it changes
                 % with depth.
-p.V_SS=0.020/year; % 20mm/year;
+p.V_SS=0.060/year; % 20mm/year;
                 % PG : Using Villegas et al. (2016) GPS survey, Figure 3.
-p.A=0.01/10; % From Tohoku. (p.B defined as function of p.B and depth later)
+factor_26 = 0.5;
+p.A=0.01/10*2.8*factor_26; % From Tohoku. (p.B defined as function of p.B and depth later)
 p.B=0.6*p.A; % From Tohoku. (Referential values, it will be redefined later)
 
-p.DC=0.1/8; % From Tohoku, Tohoku is 0.8
+p.DC=0.1/8*1.3*2.8*factor_26; % From Tohoku, Tohoku is 0.8
 
 
 p.SIGMA_CPL=1; % PG: This is relating with coupling of the normal stress 
@@ -41,13 +47,13 @@ p.SIGMA_CPL=1; % PG: This is relating with coupling of the normal stress
 p.RNS_LAW=0; %LC: 06/22           
 %p.L=800e3; % Along-strike length of the faults (in meters) extracted from 
            % the fault geometry.
-p.L=620e3; % Readjust to make the model smaller (according to ridges in Villegas, 2016)
+p.L=650e3; % Readjust to make the model smaller (according to ridges in Villegas, 2016)
 WH= 200e3; % Along-slip horizontal length of the fault (in meters) extracted 
            % from the fault geometry.
 p.W=WH/cos(15/180*pi); %Along-dip distance, 
            % Dip angle 15 degress according to Villegas et al.(2016). Table 1.
-p.NX=2048*2/8; % So that dx is smaller than Lb
-p.NW=128*8/8; % So that dw is smaller than Lb
+p.NX=round(2048*2/8*1)/2*4; % So that dx is smaller than Lb
+p.NW=128*8/8/2*4; % So that dw is smaller than Lb
 
 p.Z_CORNER=-WH*tan(15/180*pi); %-60e3;
                   % PG : Should be the end of the along-dip fault. 
@@ -147,17 +153,19 @@ end
 % to save some computational time, we may need to obmit this event as well. In this way
 % we can use the exact dimension from Villegas fault p.L = 620Km. 
 n_asperities = 4;
-asp_center_x = [0.128 0.340 0.431 0.622]*790*10^3; % (Scaled on the previous rupture size)
-asp_center_zy = [0.735 0.296 0.875*1.2 0.315*1.4]*p.W; % From top down
+asp_center_x = [0.128*0.8 0.340*1.08 0.431*1.0 1.075*0.622]*790*10^3*1.005; % (Scaled on the previous rupture size)
+asp_center_zy = [0.735*0.7 0.296*0.8 0.875*1.15 0.315*1]*p.W; % From top down
 factor_a = 0.8;
 factor_b = 0.8;
-asp_elip_a = [0.214 0.335 0.294*1.2 0.243]/2*790*10^3*factor_a;% Along strike (Scaled on the previous rupture size)
-asp_elip_b = [0.798 0.667 0.649 0.699]/2*p.W*factor_b;% Along dip
+factor26_5 = 1.00; % Change by LC on 09/06 
+asp_elip_a = [0.214*1.0 0.335*1.35 0.294*1.4 0.243*1.0]/2*790*10^3*factor_a*1.005*0.975*factor26_5;% Along strike (Scaled on the previous rupture size)
+asp_elip_b = [0.798*1.0 0.667*1.1 0.649*1.1 0.699*1.2]/2*p.W*factor_b*0.975*factor26_5;% Along dip
+
 
 %----asperity property
 l_asp0=40.0*1e3;          %asperity size lower limit in m
 l_asp1=40.0*1e3;          %asperity size upper limit in m
-ba_asp=2;       %b/a of asperity
+ba_asp=2.00;       %b/a of asperity
 dc_asp=0.025;       % Taken from AECOM example (Luis)
 dc_asp=0.025*32; % So that it runs
 dc_asp= p.DC(1);
@@ -165,7 +173,7 @@ dc_asp= p.DC(1);
 
 sigma_asp=p.SIGMA(1);        %sigma(asp)
 
-twm=20000/10;         %warmup time in years (what is this? (Luis))
+twm=1000;         %warmup time in years (what is this? (Luis))
 
 
 p.IOT=zeros(size(p.X));
@@ -225,9 +233,9 @@ for i=1:p.N
             % of distance ratio in the ellipe. In case the asperity
             % were a circle, the result would equal distance ratio to
             % the power of 6
-            p.B(j)=p.B(j)+(-p.B(j)+p.A(j)*ba_asp)*exp(-(sq_dd_ratio^3));
-            p.DC(j)=p.DC(j)+(-p.DC(j)+dc_asp)*exp(-(sq_dd_ratio^3));
-            p.SIGMA(j)=p.SIGMA(j)+(-p.SIGMA(j)+sigma_asp)*exp(-(sq_dd_ratio^3));            
+            p.B(j)=p.B(j)+(-p.B(j)+p.A(j)*ba_asp)*exp(-(sq_dd_ratio^2));
+            p.DC(j)=p.DC(j)+(-p.DC(j)+dc_asp)*exp(-(sq_dd_ratio^2));
+            p.SIGMA(j)=p.SIGMA(j)+(-p.SIGMA(j)+sigma_asp)*exp(-(sq_dd_ratio^2));            
 
         end
         Lc_asp=p.MU*p.DC(i)/(p.SIGMA(i)*(p.B(i)-p.A(i)));
@@ -246,7 +254,6 @@ for i=1:p.N
             num2str(round(p.SIGMA(i)*(p.B(i)-p.A(i))*20/10^6)),'MPa']);
     end
 end
-
 
 
 % Plot B/A ratio
@@ -291,14 +298,17 @@ p.OX_SEQ = 0; %Make fort.19 survive
 
 
 p.TMAX=twm*year;
-p.NTOUT=100;
-p.NXOUT=2;
-p.NWOUT=2;
+p.DTMAX = 0.25*year;
+p.NTOUT=25;
+p.NXOUT=1;
+p.NWOUT=1;
 p.NSTOP=0;
 p.DYN_FLAG=0;
 p.DYN_M=10.^19.5;
 p.DYN_SKIP = 1;
+p.NPROCS = 8;
 
+clearvars -except p year filename;
 [p,ot1,ox1]  = qdyn('run',p);
 semilogy(ot1.t/year,ot1.v);
 xlabel('Time (years)');
@@ -319,7 +329,7 @@ saveas(gcf,'velocity_Lima.png');
 V_0 = ox1.v(:,end);
 TH_0= ox1.th(:,end);
 save(filename,'-v7.3');
-save('warmup_jp_3d.mat','p', 'V_0', 'TH_0');
+save('part1.mat','p','ot1','ox1', 'V_0', 'TH_0','year','-v7.3');
 
 
 
